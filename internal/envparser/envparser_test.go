@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	envparser "github.com/LAMrRau/go-library/envparser"
+	envparser "github.com/LAMrRau/go-library/pkg/envparser"
 	"github.com/stretchr/testify/suite"
 )
 
