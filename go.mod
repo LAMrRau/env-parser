@@ -1,4 +1,4 @@
-module private/golang-reflect
+module github.com/LAMrRau/env-parser
 
 go 1.19
 
