@@ -7,22 +7,29 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+type TestStruct struct {
+	PropertyA string `env:"IDENTIFIER_A" default:"Dummy"`
+	PropertyB int    `env:"identifier_B" default:"15"`
+	PropertyC bool   `env:"identifierC"  default:"false"`
+}
+
 type TestSuite struct {
 	suite.Suite
-	VariableThatShouldStartAtFive int
+
+	testStruct TestStruct
 }
 
 // Make sure that VariableThatShouldStartAtFive is set to five
 // before each test
 func (ts *TestSuite) SetupTest() {
-	ts.VariableThatShouldStartAtFive = 5
-}
+	ts.testStruct = TestStruct{}
 
-func (ts *TestSuite) BeforeTest(suiteName, testName string) {
 	os.Unsetenv("IDENTIFIER_A")
 	os.Unsetenv("identifier_B")
 	os.Unsetenv("identifierC")
 }
+
+func (ts *TestSuite) BeforeTest(suiteName, testName string) {}
 
 func (ts *TestSuite) AfterTest(suiteName, testName string) {
 	os.Unsetenv("IDENTIFIER_A")
@@ -37,21 +44,11 @@ func TestSuiteRun(t *testing.T) {
 }
 
 func (ts *TestSuite) TestInitializeDefaults() {
-	testResult := Initialize(false)
+	ParseEnv(&ts.testStruct)
 
-	ts.NotNil(testResult)
-	ts.Equal(testResult.PropertyA, "Dummy")
-	ts.Equal(testResult.PropertyB, 15)
-	ts.Equal(testResult.PropertyC, false)
-}
-
-func (ts *TestSuite) TestInitializeDefaultsAndConfigFile() {
-	testResult := Initialize(true)
-
-	ts.NotNil(testResult)
-	ts.Equal(testResult.PropertyA, "Good morning")
-	ts.Equal(testResult.PropertyB, 23)
-	ts.Equal(testResult.PropertyC, true)
+	ts.Equal(ts.testStruct.PropertyA, "Dummy")
+	ts.Equal(ts.testStruct.PropertyB, 15)
+	ts.Equal(ts.testStruct.PropertyC, false)
 }
 
 func (ts *TestSuite) TestInitializeAll() {
@@ -59,32 +56,29 @@ func (ts *TestSuite) TestInitializeAll() {
 	os.Setenv("identifier_B", "69")
 	os.Setenv("identifierC", "false")
 
-	testResult := Initialize(true)
+	ParseEnv(&ts.testStruct)
 
-	ts.NotNil(testResult)
-	ts.Equal(testResult.PropertyA, "Hola")
-	ts.Equal(testResult.PropertyB, 69)
-	ts.Equal(testResult.PropertyC, false)
+	ts.Equal(ts.testStruct.PropertyA, "Hola")
+	ts.Equal(ts.testStruct.PropertyB, 69)
+	ts.Equal(ts.testStruct.PropertyC, false)
 }
 
 func (ts *TestSuite) TestInitializeJustB() {
 	os.Setenv("identifier_B", "69")
 
-	testResult := Initialize(true)
+	ParseEnv(&ts.testStruct)
 
-	ts.NotNil(testResult)
-	ts.Equal(testResult.PropertyA, "Good morning")
-	ts.Equal(testResult.PropertyB, 69)
-	ts.Equal(testResult.PropertyC, true)
+	ts.Equal(ts.testStruct.PropertyA, "Dummy")
+	ts.Equal(ts.testStruct.PropertyB, 69)
+	ts.Equal(ts.testStruct.PropertyC, false)
 }
 
 func (ts *TestSuite) TestInitializeJustNotANumber() {
 	os.Setenv("identifier_B", "hello")
 
-	testResult := Initialize(true)
+	ParseEnv(&ts.testStruct)
 
-	ts.NotNil(testResult)
-	ts.Equal(testResult.PropertyA, "Good morning")
-	ts.Equal(testResult.PropertyB, 23)
-	ts.Equal(testResult.PropertyC, true)
+	ts.Equal(ts.testStruct.PropertyA, "Dummy")
+	ts.Equal(ts.testStruct.PropertyB, 15)
+	ts.Equal(ts.testStruct.PropertyC, false)
 }

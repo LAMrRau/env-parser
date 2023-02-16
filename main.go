@@ -5,77 +5,46 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-
-	"github.com/spf13/viper"
 )
 
-type Dummy struct {
-	PropertyA string `mapstructure:"IDENTIFIER_A" default:"Dummy"`
-	PropertyB int    `mapstructure:"identifier_B" default:"15"`
-	PropertyC bool   `mapstructure:"identifierC"  default:"false"`
+func ParseEnv(inputStruct interface{}) {
+	metaData := getStructMetaData(inputStruct)
+
+	addDefaultData(metaData, inputStruct)
+
+	updateEnvData(metaData, inputStruct)
 }
 
-func Initialize(useConfigFile bool) *Dummy {
-	dummy := Dummy{}
-
-	bindData := getStructKeys(&dummy)
-	for _, data := range bindData {
-		viper.BindEnv(data.Mapstructure)
-	}
-
-	addDefaultData(bindData, &dummy)
-
-	if useConfigFile {
-		viper.SetConfigType("env")
-		viper.SetConfigFile("./test.conf")
-		fmt.Printf("Using config: %s\n", viper.ConfigFileUsed())
-		viper.ReadInConfig()
-	
-		if err := viper.Unmarshal(&dummy); err != nil {
-			fmt.Printf("Unmarshal failed: %s\n", err.Error())
-			return nil
-		}
-	
-		fmt.Printf("After config file - Some dummy: %+v\n", dummy)
-	}
-
-	updateEnvData(bindData, &dummy)
-
-	fmt.Printf("After env vars - Some dummy: %+v\n", dummy)
-
-	return &dummy
+type StructMetaData struct {
+	Key     string
+	Type    string
+	Env     string
+	Default string
 }
 
-type StructFieldInfo struct {
-	Key          string
-	Type         string
-	Mapstructure string
-	Default      string
-}
+func getStructMetaData(inputStruct interface{}) []StructMetaData {
+	result := []StructMetaData{}
 
-func getStructKeys(dummy *Dummy) []StructFieldInfo {
-	result := []StructFieldInfo{}
-
-	elements := reflect.ValueOf(dummy).Elem()
+	elements := reflect.ValueOf(inputStruct).Elem()
 	for i := 0; i < elements.NumField(); i++ {
 		field := elements.Type().Field(i)
-		result = append(result, StructFieldInfo{
-			Key:          field.Name,
-			Type:         field.Type.Name(),
-			Mapstructure: field.Tag.Get("mapstructure"),
-			Default:      field.Tag.Get("default"),
+		result = append(result, StructMetaData{
+			Key:     field.Name,
+			Type:    field.Type.Name(),
+			Env:     field.Tag.Get("env"),
+			Default: field.Tag.Get("default"),
 		})
 	}
 
 	return result
 }
 
-func updateEnvData(structFieldInfo []StructFieldInfo, dummy *Dummy) {
+func updateEnvData(structFieldInfo []StructMetaData, inputStruct interface{}) {
 	for _, data := range structFieldInfo {
-		envValue := os.Getenv(data.Mapstructure)
+		envValue := os.Getenv(data.Env)
 
 		if envValue != "" {
-			field := getField(data.Key, dummy)
+			field := getField(data.Key, inputStruct)
 
 			switch data.Type {
 			case "string":
@@ -93,11 +62,11 @@ func updateEnvData(structFieldInfo []StructFieldInfo, dummy *Dummy) {
 	}
 }
 
-func addDefaultData(structFieldInfo []StructFieldInfo, dummy *Dummy) {
+func addDefaultData(structFieldInfo []StructMetaData, inputStruct interface{}) {
 	for _, data := range structFieldInfo {
 
 		if data.Default != "" {
-			field := getField(data.Key, dummy)
+			field := getField(data.Key, inputStruct)
 
 			switch data.Type {
 			case "string":
@@ -112,14 +81,8 @@ func addDefaultData(structFieldInfo []StructFieldInfo, dummy *Dummy) {
 	}
 }
 
-func isValueFilled(fieldKey, fieldType string, dummy *Dummy) bool {
-	field := getField(fieldKey, dummy)
-
-	return field.IsValid()
-}
-
-func getField(fieldKey string, dummy *Dummy) reflect.Value {
-	r := reflect.ValueOf(dummy)
+func getField(fieldKey string, inputStruct interface{}) reflect.Value {
+	r := reflect.ValueOf(inputStruct)
 	field := reflect.Indirect(r).FieldByName(fieldKey)
 
 	return field
