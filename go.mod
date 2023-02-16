@@ -1,4 +1,4 @@
-module github.com/LAMrRau/env-parser
+module github.com/LAMrRau/go-library
 
 go 1.19
 

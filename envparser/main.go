@@ -1,4 +1,4 @@
-package main
+package envparser
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-func ParseEnv(inputStruct interface{}) {
+func Parse(inputStruct interface{}) {
 	metaData := getStructMetaData(inputStruct)
 
 	addDefaultData(metaData, inputStruct)
@@ -15,20 +15,20 @@ func ParseEnv(inputStruct interface{}) {
 	updateEnvData(metaData, inputStruct)
 }
 
-type StructMetaData struct {
+type structMetaData struct {
 	Key     string
 	Type    string
 	Env     string
 	Default string
 }
 
-func getStructMetaData(inputStruct interface{}) []StructMetaData {
-	result := []StructMetaData{}
+func getStructMetaData(inputStruct interface{}) []structMetaData {
+	result := []structMetaData{}
 
 	elements := reflect.ValueOf(inputStruct).Elem()
 	for i := 0; i < elements.NumField(); i++ {
 		field := elements.Type().Field(i)
-		result = append(result, StructMetaData{
+		result = append(result, structMetaData{
 			Key:     field.Name,
 			Type:    field.Type.Name(),
 			Env:     field.Tag.Get("env"),
@@ -39,7 +39,7 @@ func getStructMetaData(inputStruct interface{}) []StructMetaData {
 	return result
 }
 
-func updateEnvData(structFieldInfo []StructMetaData, inputStruct interface{}) {
+func updateEnvData(structFieldInfo []structMetaData, inputStruct interface{}) {
 	for _, data := range structFieldInfo {
 		envValue := os.Getenv(data.Env)
 
@@ -62,7 +62,7 @@ func updateEnvData(structFieldInfo []StructMetaData, inputStruct interface{}) {
 	}
 }
 
-func addDefaultData(structFieldInfo []StructMetaData, inputStruct interface{}) {
+func addDefaultData(structFieldInfo []structMetaData, inputStruct interface{}) {
 	for _, data := range structFieldInfo {
 
 		if data.Default != "" {
